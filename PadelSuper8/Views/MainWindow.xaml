@@ -1,0 +1,830 @@
+<Window x:Class="PadelSuper8.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:PadelSuper8.ViewModels"
+        mc:Ignorable="d"
+        Title="Padel Super 8 Pro - Sistema de Gestão de Torneios"
+        Height="880" Width="1340"
+        MinHeight="720" MinWidth="1080"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgDark}">
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- 0: Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- 1: Banner Alerta -->
+            <RowDefinition Height="Auto"/>
+            <!-- 2: Conteúdo Principal -->
+            <RowDefinition Height="*"/>
+            <!-- 3: Status Bar Inferior -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============================================================== -->
+        <!-- TOP BAR / HEADER PROFISSIONAL                                 -->
+        <!-- ============================================================== -->
+        <Border Grid.Row="0" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,0,1" Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Logo & Identidade -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{StaticResource AccentBlue}" CornerRadius="10" Width="40" Height="40" Margin="0,0,12,0">
+                        <TextBlock Text="🎾" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="PADEL" FontWeight="Black" FontSize="19" Foreground="{StaticResource AccentBlue}"/>
+                            <TextBlock Text=" SUPER 8" FontWeight="Black" FontSize="19" Foreground="{StaticResource TextPrimary}"/>
+                            <Border Background="#1E3A8A" CornerRadius="4" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="PRO EDITION" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBlue}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding NomeTorneio}" FontSize="12" Foreground="{StaticResource TextSecondary}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Barra de Ações Profissionais -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Botão Telão / Pódio de Premiação -->
+                    <Button Style="{StaticResource SecondaryButton}" 
+                            Command="{Binding AbrirPodioCommand}"
+                            Visibility="{Binding IsTelaTorneio, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,8,0" ToolTip="Modo Telão / TV para cerimônia de premiação">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🏆" Margin="0,0,5,0"/>
+                            <TextBlock Text="Modo Telão / Pódio"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Botão Súmula para Impressão / PDF -->
+                    <Button Style="{StaticResource SecondaryButton}" 
+                            Command="{Binding GerarSumulaCommand}"
+                            Visibility="{Binding IsTelaTorneio, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,8,0" ToolTip="Gera súmula oficial em HTML formatada para impressão ou PDF">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🖨️" Margin="0,0,5,0"/>
+                            <TextBlock Text="Súmula / Imprimir"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Botão Compartilhar WhatsApp -->
+                    <Button Style="{StaticResource SecondaryButton}" 
+                            Command="{Binding CopiarWhatsAppCommand}" 
+                            Visibility="{Binding IsTelaTorneio, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="0,0,8,0" ToolTip="Copia classificação completa com sets e games para WhatsApp">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📲" Margin="0,0,5,0"/>
+                            <TextBlock Text="WhatsApp"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Botão Histórico de Torneios -->
+                    <Button Style="{StaticResource SecondaryButton}" 
+                            Command="{Binding AbrirHistoricoCommand}"
+                            Margin="0,0,8,0" ToolTip="Consultar torneios gravados no banco SQLite">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📂" Margin="0,0,5,0"/>
+                            <TextBlock Text="Histórico"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Botão Novo Torneio -->
+                    <Button Style="{StaticResource SecondaryButton}" 
+                            Command="{Binding VoltarCadastroCommand}"
+                            Visibility="{Binding IsTelaTorneio, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚙️" Margin="0,0,5,0"/>
+                            <TextBlock Text="Novo Torneio"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- BANNER DE ALERTA / CONFIRMAÇÃO -->
+        <Border Grid.Row="1" Background="#065F46" 
+                Visibility="{Binding TemAlerta, Converter={StaticResource BoolToVisibilityConverter}}"
+                Padding="16,8">
+            <TextBlock Text="{Binding MensagemAlerta}" Foreground="#D1FAE5" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- ============================================================== -->
+        <!-- CONTEÚDO PRINCIPAL (TELA 1 OU TELA 2)                          -->
+        <!-- ============================================================== -->
+        <Grid Grid.Row="2" Margin="20">
+
+            <!-- ============================================== -->
+            <!-- TELA 1: CADASTRO E CONFIGURAÇÃO               -->
+            <!-- ============================================== -->
+            <Grid Visibility="{Binding IsTelaCadastro, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="420"/>
+                    <ColumnDefinition Width="24"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Coluna Configuração -->
+                <Border Grid.Column="0" Background="{StaticResource BgCard}" CornerRadius="12" Padding="22" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="Configurar Torneio" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,14"/>
+
+                        <TextBlock Text="Nome do Torneio / Clube:" Foreground="{StaticResource TextSecondary}" FontSize="13" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding NomeTorneio, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="Formato de Disputa:" Foreground="{StaticResource TextSecondary}" FontSize="13" Margin="0,0,0,8"/>
+
+                        <Border Background="{StaticResource BgDark}" CornerRadius="8" Padding="12" Margin="0,0,0,10" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                            <RadioButton GroupName="TipoTorneioGroup" IsChecked="{Binding IsRotativo, Mode=TwoWay}">
+                                <StackPanel Margin="6,0,0,0">
+                                    <TextBlock Text="Super 8 Rotativo (Americano)" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                                    <TextBlock Text="8 Atletas individuais. 7 rodadas matemáticas com rodízio de parceiros. Pontuação individual." 
+                                               TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </Border>
+
+                        <Border Background="{StaticResource BgDark}" CornerRadius="8" Padding="12" Margin="0,0,0,14" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                            <RadioButton GroupName="TipoTorneioGroup" IsChecked="{Binding IsDuplasFixas, Mode=TwoWay}">
+                                <StackPanel Margin="6,0,0,0">
+                                    <TextBlock Text="Super 8 Duplas Fixas (Grupos + Mata-Mata)" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                                    <TextBlock Text="8 Duplas formadas. Grupo A e Grupo B (3 rodadas) + Semifinais e Finais eliminatórias." 
+                                               TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </Border>
+
+                        <Border Background="#1E293B" CornerRadius="8" Padding="12" Margin="0,0,0,18">
+                            <StackPanel>
+                                <TextBlock Text="ℹ️ Como funciona:" FontWeight="Bold" Foreground="{StaticResource AccentBlue}" FontSize="12" Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding DescricaoModo}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Style="{StaticResource GreenButton}" Command="{Binding IniciarTorneioCommand}" Height="46" FontSize="15">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🚀" Margin="0,0,8,0"/>
+                                <TextBlock Text="GERAR E INICIAR TORNEIO"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Coluna Participantes -->
+                <Border Grid.Column="2" Background="{StaticResource BgCard}" CornerRadius="12" Padding="22" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Participantes do Torneio (8 Vagas)" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                                <TextBlock Text="Informe os 8 atletas ou duplas para gerar as quadras e rodízios." FontSize="13" Foreground="{StaticResource TextSecondary}" Margin="0,3,0,0"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding PreencherExemploCommand}" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚡" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Nomes de Exemplo"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding SlotsCadastro}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="2"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource BgDark}" CornerRadius="8" Margin="6" Padding="12" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="32"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <Border Grid.Column="0" Background="{StaticResource BgCardLight}" CornerRadius="6" Width="26" Height="26" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Numero}" FontWeight="Bold" Foreground="{StaticResource AccentBlue}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="Nome do Participante:" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,3"/>
+                                                    <TextBox Text="{Binding Nome, UpdateSourceTrigger=PropertyChanged}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ============================================== -->
+            <!-- TELA 2: GESTÃO DO TORNEIO (MATCH CENTER + TABELA) -->
+            <!-- ============================================== -->
+            <Grid Visibility="{Binding IsTelaTorneio, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <!-- Coluna Esquerda: Match Center (Partidas e Cronômetro) -->
+                    <ColumnDefinition Width="1.15*"/>
+                    <ColumnDefinition Width="16"/>
+                    <!-- Coluna Direita: Classificação com Sets e Games -->
+                    <ColumnDefinition Width="1.45*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ======================================== -->
+                <!-- COLUNA ESQUERDA: PARTIDAS & CRONÔMETRO   -->
+                <!-- ======================================== -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <!-- Barra de Cronômetros -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Abas de Rodadas -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Partidas da Rodada -->
+                        <RowDefinition Height="*"/>
+                        <!-- Botões de Próxima Fase -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- BARRA DE CRONÔMETROS OFICIAIS DE QUADRA -->
+                    <Border Grid.Row="0" Background="{StaticResource BgCard}" CornerRadius="10" Padding="14,10" Margin="0,0,0,12" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Cronômetro Quadra 1 -->
+                            <Border Grid.Column="0" Background="{StaticResource BgDark}" CornerRadius="8" Padding="10,6" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="⏱️ QUADRA 1" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBlue}"/>
+                                        <TextBlock Text="{Binding CronometroQuadra1.TempoFormatado}" FontSize="20" FontWeight="Black" Foreground="{StaticResource TextPrimary}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Padding="8,4" Margin="0,0,4,0" FontSize="11"
+                                                Command="{Binding DataContext.CronometroQuadra1.IniciarOuPausar, RelativeSource={RelativeSource AncestorType=Window}}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                    <Setter Property="Content" Value="▶ Iniciar"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding CronometroQuadra1.IsRodando}" Value="True">
+                                                            <Setter Property="Content" Value="⏸ Pausar"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Content="↺ Reset"
+                                                Command="{Binding DataContext.CronometroQuadra1.Resetar, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Cronômetro Quadra 2 -->
+                            <Border Grid.Column="2" Background="{StaticResource BgDark}" CornerRadius="8" Padding="10,6" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="⏱️ QUADRA 2" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentGold}"/>
+                                        <TextBlock Text="{Binding CronometroQuadra2.TempoFormatado}" FontSize="20" FontWeight="Black" Foreground="{StaticResource TextPrimary}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Padding="8,4" Margin="0,0,4,0" FontSize="11"
+                                                Command="{Binding DataContext.CronometroQuadra2.IniciarOuPausar, RelativeSource={RelativeSource AncestorType=Window}}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                    <Setter Property="Content" Value="▶ Iniciar"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding CronometroQuadra2.IsRodando}" Value="True">
+                                                            <Setter Property="Content" Value="⏸ Pausar"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Style="{StaticResource SecondaryButton}" Padding="8,4" FontSize="11" Content="↺ Reset"
+                                                Command="{Binding DataContext.CronometroQuadra2.Resetar, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Navegação de Rodadas -->
+                    <Border Grid.Row="1" Background="{StaticResource BgCard}" CornerRadius="10" Padding="10" Margin="0,0,0,12" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Rodadas}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource SecondaryButton}" Margin="3,0" Padding="10,6"
+                                                Command="{Binding DataContext.SelecionarRodadaCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🎾" Margin="0,0,4,0"/>
+                                                <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" FontSize="12"/>
+                                                <TextBlock Text=" ✔" Foreground="{StaticResource AccentGreen}" FontWeight="Bold"
+                                                           Visibility="{Binding TodasFinalizadas, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- Partidas da Rodada Selecionada -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="{Binding RodadaSelecionada.Titulo}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,10"/>
+
+                            <ItemsControl ItemsSource="{Binding RodadaSelecionada.Partidas}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource BgCard}" CornerRadius="10" Margin="0,0,0,12" Padding="16" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Topo da Partida -->
+                                                <Grid Grid.Row="0" Margin="0,0,0,10">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                        <Border Background="#1E3A8A" CornerRadius="6" Padding="6,2" Margin="0,0,6,0">
+                                                            <TextBlock Text="{Binding NomeQuadra}" FontWeight="Bold" Foreground="{StaticResource AccentBlue}" FontSize="11"/>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding TituloFase}" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+
+                                                    <Border Grid.Column="1" Background="{Binding Status, Converter={StaticResource StatusToBrushConverter}}" CornerRadius="6" Padding="6,2">
+                                                        <TextBlock Text="{Binding StatusDescricao}" FontWeight="Bold" Foreground="#FFFFFF" FontSize="10"/>
+                                                    </Border>
+                                                </Grid>
+
+                                                <!-- Placar Interativo -->
+                                                <Border Grid.Row="1" Background="{StaticResource BgDark}" CornerRadius="8" Padding="12" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="40"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- Time 1 -->
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding NomeDupla1}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap"/>
+                                                            <TextBlock Text="Dupla 1" FontSize="10" Foreground="{StaticResource TextSecondary}"/>
+                                                        </StackPanel>
+
+                                                        <!-- Controles Time 1 -->
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Button Style="{StaticResource ScoreButton}" Content="-" Margin="0,0,6,0"
+                                                                    Command="{Binding DataContext.DecrementarP1Command, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                            <Border Background="{StaticResource BgCard}" CornerRadius="6" Width="42" Height="42" BorderBrush="{StaticResource AccentBlue}" BorderThickness="1">
+                                                                <TextBlock Text="{Binding Placar1}" FontSize="22" FontWeight="Black" Foreground="{StaticResource AccentBlue}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <Button Style="{StaticResource ScoreButton}" Content="+" Margin="6,0,0,0"
+                                                                    Command="{Binding DataContext.IncrementarP1Command, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                        </StackPanel>
+
+                                                        <!-- VS -->
+                                                        <TextBlock Grid.Column="2" Text="VS" FontWeight="Black" FontSize="14" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                                        <!-- Controles Time 2 -->
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Button Style="{StaticResource ScoreButton}" Content="-" Margin="0,0,6,0"
+                                                                    Command="{Binding DataContext.DecrementarP2Command, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                            <Border Background="{StaticResource BgCard}" CornerRadius="6" Width="42" Height="42" BorderBrush="{StaticResource AccentBlue}" BorderThickness="1">
+                                                                <TextBlock Text="{Binding Placar2}" FontSize="22" FontWeight="Black" Foreground="{StaticResource AccentBlue}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <Button Style="{StaticResource ScoreButton}" Content="+" Margin="6,0,0,0"
+                                                                    Command="{Binding DataContext.IncrementarP2Command, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                        </StackPanel>
+
+                                                        <!-- Time 2 -->
+                                                        <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                            <TextBlock Text="{Binding NomeDupla2}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource TextPrimary}" TextAlignment="Right" TextWrapping="Wrap"/>
+                                                            <TextBlock Text="Dupla 2" FontSize="10" Foreground="{StaticResource TextSecondary}" TextAlignment="Right"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+
+                                                <!-- BOTÃO DE LANÇAR RESULTADO -->
+                                                <Border Grid.Row="2" Margin="0,10,0,0">
+                                                    <Button Background="{Binding EstaFinalizada, Converter={StaticResource FinalizadaToButtonBrushConverter}}"
+                                                            Foreground="#FFFFFF" FontWeight="Bold" FontSize="12" Padding="14,8"
+                                                            HorizontalAlignment="Stretch" Cursor="Hand"
+                                                            Command="{Binding DataContext.AlternarFinalizadaCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                        <TextBlock Text="{Binding EstaFinalizada, Converter={StaticResource FinalizadaToTextoConverter}}" FontWeight="Bold"/>
+                                                    </Button>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Botões de Próxima Fase -->
+                    <Border Grid.Row="3" Margin="0,8,0,0">
+                        <StackPanel>
+                            <Button Style="{StaticResource GreenButton}" Height="42" FontSize="13" Margin="0,0,0,6"
+                                    Visibility="{Binding PodeGerarSemifinais, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Command="{Binding GerarMataMataCommand}" Content="⚡ Fase de Grupos Concluída! Gerar Semifinais (A x B)"/>
+
+                            <Button Style="{StaticResource GreenButton}" Height="42" FontSize="13" Margin="0,0,0,6"
+                                    Visibility="{Binding PodeGerarFinais, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Command="{Binding GerarMataMataCommand}" Content="🏆 Semifinais Concluídas! Gerar Grande Final e 3º Lugar"/>
+
+                            <Button Style="{StaticResource GreenButton}" Height="42" FontSize="13"
+                                    Visibility="{Binding PodeGerarFinalRotativo, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Command="{Binding GerarFinalRotativoCommand}" Content="🏆 7 Rodadas Concluídas! Gerar Grande Final dos Top 4"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ============================================================== -->
+                <!-- COLUNA DIREITA: TABELA DETALHADA (SETS, GAMES E PONTUAÇÃO)    -->
+                <!-- ============================================================== -->
+                <Border Grid.Column="2" Background="{StaticResource BgCard}" CornerRadius="12" Padding="16" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <!-- Título -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Barra de Cabeçalho das Colunas -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Lista de Classificação -->
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho -->
+                        <Grid Grid.Row="0" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Classificação Oficial - Soma de Sets &amp; Games" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                                <TextBlock Text="Atualização automática a cada placar registrado com critérios oficiais de desempate." FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Legenda / Cabeçalho das Colunas -->
+                        <Border Grid.Row="1" Background="{StaticResource BgDark}" CornerRadius="6" Padding="10,6" Margin="0,0,0,8" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="65"/>
+                                    <ColumnDefinition Width="58"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="POS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="PARTICIPANTE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondary}"/>
+                                <TextBlock Grid.Column="2" Text="J (V-D)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="SETS (V/P)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="GAMES (GP/GC)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="5" Text="SALDO (SG)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="6" Text="PONTOS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBlue}" HorizontalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Lista de Linhas: Modo Rotativo -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="{Binding IsRotativo, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <ItemsControl ItemsSource="{Binding ClassificacaoGeral}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource BgDark}" CornerRadius="8" Margin="0,0,0,6" Padding="10,8" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="36"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="70"/>
+                                                    <ColumnDefinition Width="80"/>
+                                                    <ColumnDefinition Width="80"/>
+                                                    <ColumnDefinition Width="65"/>
+                                                    <ColumnDefinition Width="58"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Posição -->
+                                                <TextBlock Grid.Column="0" Text="{Binding Posicao, Converter={StaticResource PosicaoToIconConverter}}" 
+                                                           Foreground="{Binding Posicao, Converter={StaticResource PosicaoToBrushConverter}}"
+                                                           FontWeight="Bold" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                                                <!-- Nome / Aproveitamento -->
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0">
+                                                    <TextBlock Text="{Binding Nome}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimary}"/>
+                                                    <TextBlock Text="{Binding Aproveitamento, StringFormat='Aprov: {0}'}" FontSize="10" Foreground="{StaticResource TextSecondary}"/>
+                                                </StackPanel>
+
+                                                <!-- Jogos (V-D) -->
+                                                <TextBlock Grid.Column="2" Text="{Binding Vitorias, StringFormat='{}{0}V'}" Foreground="{StaticResource AccentGreen}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                                                <!-- SOMA DOS SETS -->
+                                                <Border Grid.Column="3" Background="#1E293B" CornerRadius="4" Padding="4,2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                    <TextBlock Foreground="#E2E8F0" FontSize="11" FontWeight="SemiBold">
+                                                        <Run Text="{Binding SetsVencidos}"/>
+                                                        <Run Text=" / " Foreground="{StaticResource TextSecondary}"/>
+                                                        <Run Text="{Binding SetsPerdidos}"/>
+                                                    </TextBlock>
+                                                </Border>
+
+                                                <!-- SOMA DOS GAMES (GP e GC) -->
+                                                <Border Grid.Column="4" Background="#1E293B" CornerRadius="4" Padding="4,2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                    <TextBlock Foreground="#38BDF8" FontSize="11" FontWeight="Bold">
+                                                        <Run Text="{Binding GamesPro}"/>
+                                                        <Run Text=" - " Foreground="{StaticResource TextSecondary}"/>
+                                                        <Run Text="{Binding GamesContra}" Foreground="#94A3B8"/>
+                                                    </TextBlock>
+                                                </Border>
+
+                                                <!-- Saldo de Games (SG) -->
+                                                <TextBlock Grid.Column="5" Text="{Binding SaldoGames, Converter={StaticResource SaldoFormatConverter}}" Foreground="{StaticResource AccentGold}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                                                <!-- Pontos Totais -->
+                                                <Border Grid.Column="6" Background="{StaticResource BgCardLight}" CornerRadius="6" Padding="6,3" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding Pontos, StringFormat='{}{0} pts'}" FontWeight="Black" Foreground="{StaticResource TextPrimary}" FontSize="11"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- Lista de Linhas: Modo Duplas Fixas (Grupos A e B) -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="{Binding IsDuplasFixas, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <Border Background="#1E3A8A" CornerRadius="6" Padding="8,4" Margin="0,0,0,6">
+                                    <TextBlock Text="🔵 GRUPO A (Top 2 avançam às Semifinais)" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" FontSize="11"/>
+                                </Border>
+                                <ItemsControl ItemsSource="{Binding ClassificacaoGrupoA}" Margin="0,0,0,12">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource BgDark}" CornerRadius="6" Margin="0,0,0,5" Padding="8,6" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="28"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="65"/>
+                                                        <ColumnDefinition Width="75"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                        <ColumnDefinition Width="54"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Posicao, StringFormat='{}{0}º'}" FontWeight="Bold" Foreground="{StaticResource AccentBlue}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Nome}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Vitorias, StringFormat='{}{0}V'}" Foreground="{StaticResource AccentGreen}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding GamesPro, StringFormat='{}GP: {0}'}" Foreground="{StaticResource AccentBlue}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="4" Text="{Binding SaldoGames, Converter={StaticResource SaldoFormatConverter}}" Foreground="{StaticResource AccentGold}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="5" Text="{Binding Pontos, StringFormat='{}{0} pts'}" FontWeight="Black" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Border Background="#831843" CornerRadius="6" Padding="8,4" Margin="0,0,0,6">
+                                    <TextBlock Text="🔴 GRUPO B (Top 2 avançam às Semifinais)" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" FontSize="11"/>
+                                </Border>
+                                <ItemsControl ItemsSource="{Binding ClassificacaoGrupoB}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource BgDark}" CornerRadius="6" Margin="0,0,0,5" Padding="8,6" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="28"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="65"/>
+                                                        <ColumnDefinition Width="75"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                        <ColumnDefinition Width="54"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Posicao, StringFormat='{}{0}º'}" FontWeight="Bold" Foreground="{StaticResource AccentGold}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Nome}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Vitorias, StringFormat='{}{0}V'}" Foreground="{StaticResource AccentGreen}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding GamesPro, StringFormat='{}GP: {0}'}" Foreground="{StaticResource AccentBlue}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="4" Text="{Binding SaldoGames, Converter={StaticResource SaldoFormatConverter}}" Foreground="{StaticResource AccentGold}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="5" Text="{Binding Pontos, StringFormat='{}{0} pts'}" FontWeight="Black" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+        </Grid>
+
+        <!-- ============================================================== -->
+        <!-- STATUS BAR PROFISSIONAL (RODAPÉ)                              -->
+        <!-- ============================================================== -->
+        <Border Grid.Row="3" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,1,0,0" Padding="20,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🟢" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Banco SQLite Embutido: padel.db (Auto-Save Ativo)" FontSize="11" Foreground="#6EE7B7" FontWeight="SemiBold"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🎾 Partidas Concluídas: " FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                    <TextBlock Text="{Binding TotalJogosFinalizados}" FontWeight="Bold" Foreground="{StaticResource AccentGreen}" FontSize="11"/>
+                    <TextBlock Text=" de " FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                    <TextBlock Text="{Binding TotalJogos}" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" FontSize="11"/>
+                    <TextBlock Text=" | Super 8 Pro Desktop" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="8,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================== -->
+        <!-- OVERLAY MODAL: MODO TELÃO / PÓDIO DE PREMIAÇÃO (TV MODE)      -->
+        <!-- ============================================================== -->
+        <Border Grid.RowSpan="4" Background="#F00A0F1D" 
+                Visibility="{Binding ModoPodio, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid Margin="40">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Topo Pódio -->
+                <Grid Grid.Row="0">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="🏆 CERIMÔNIA DE PREMIAÇÃO" FontSize="28" FontWeight="Black" Foreground="{StaticResource AccentGold}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding NomeTorneio}" FontSize="16" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Command="{Binding FecharPodioCommand}" Content="✖ Fechar Telão"/>
+                </Grid>
+
+                <!-- Cards dos 3 Primeiros Colocados -->
+                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,20">
+                    <Grid.ColumnDefinitions>
+                        <!-- 2º Lugar -->
+                        <ColumnDefinition Width="*"/>
+                        <!-- 1º Lugar (Campeão - Centro Maior) -->
+                        <ColumnDefinition Width="1.2*"/>
+                        <!-- 3º Lugar -->
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 2º LUGAR (PRATA) -->
+                    <Border Grid.Column="0" Background="{StaticResource BgCard}" CornerRadius="14" Padding="20" Margin="14,40,14,0" BorderBrush="#94A3B8" BorderThickness="2" VerticalAlignment="Bottom">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="🥈" FontSize="50" HorizontalAlignment="Center"/>
+                            <TextBlock Text="VICE-CAMPEÃO" FontWeight="Bold" Foreground="#94A3B8" FontSize="13" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding Campeao2.Nome}" FontWeight="Black" FontSize="22" Foreground="{StaticResource TextPrimary}" HorizontalAlignment="Center" Margin="0,8,0,4" TextAlignment="Center"/>
+                            <TextBlock Text="{Binding Campeao2.Pontos, StringFormat='{}{0} Pontos Conquistados'}" FontSize="14" Foreground="{StaticResource AccentBlue}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding Campeao2.GamesPro, StringFormat='{}Games Pró: {0}'}" FontSize="12" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 1º LUGAR (CAMPEÃO - OURO) -->
+                    <Border Grid.Column="1" Background="#1E293B" CornerRadius="16" Padding="26" Margin="10,0" BorderBrush="{StaticResource AccentGold}" BorderThickness="3" VerticalAlignment="Bottom">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="👑" FontSize="40" HorizontalAlignment="Center"/>
+                            <TextBlock Text="🥇" FontSize="70" HorizontalAlignment="Center" Margin="0,-10,0,0"/>
+                            <TextBlock Text="GRANDE CAMPEÃO" FontWeight="Black" Foreground="{StaticResource AccentGold}" FontSize="16" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding Campeao1.Nome}" FontWeight="Black" FontSize="28" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,10,0,6" TextAlignment="Center"/>
+                            <Border Background="#F59E0B" CornerRadius="8" Padding="12,6" Margin="0,4,0,0">
+                                <TextBlock Text="{Binding Campeao1.Pontos, StringFormat='🏆 {0} PONTOS'}" FontSize="18" FontWeight="Black" Foreground="#0F172A" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{Binding Campeao1.GamesPro, StringFormat='{}Total de Games Ganhos: {0}'}" FontSize="13" Foreground="#FDE68A" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 3º LUGAR (BRONZE) -->
+                    <Border Grid.Column="2" Background="{StaticResource BgCard}" CornerRadius="14" Padding="20" Margin="14,60,14,0" BorderBrush="#F97316" BorderThickness="2" VerticalAlignment="Bottom">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="🥉" FontSize="50" HorizontalAlignment="Center"/>
+                            <TextBlock Text="3º LUGAR" FontWeight="Bold" Foreground="#F97316" FontSize="13" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding Campeao3.Nome}" FontWeight="Black" FontSize="22" Foreground="{StaticResource TextPrimary}" HorizontalAlignment="Center" Margin="0,8,0,4" TextAlignment="Center"/>
+                            <TextBlock Text="{Binding Campeao3.Pontos, StringFormat='{}{0} Pontos Conquistados'}" FontSize="14" Foreground="{StaticResource AccentBlue}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding Campeao3.GamesPro, StringFormat='{}Games Pró: {0}'}" FontSize="12" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <TextBlock Grid.Row="2" Text="Padel Super 8 - Cerimônia Oficial de Encerramento" FontSize="13" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================== -->
+        <!-- OVERLAY MODAL: HISTÓRICO DE TORNEIOS (SQLITE)                 -->
+        <!-- ============================================================== -->
+        <Border Grid.RowSpan="4" Background="#E60A0F1D" 
+                Visibility="{Binding ModoHistorico, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border Background="{StaticResource BgCard}" CornerRadius="12" Width="700" Height="520" Padding="24" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <TextBlock Text="📂 Torneios Gravados no SQLite" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                        <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Command="{Binding FecharHistoricoCommand}" Content="✖ Fechar"/>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding ListaTorneiosSalvos}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource BgDark}" CornerRadius="8" Margin="0,0,0,8" Padding="14" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="{Binding Nome}" FontWeight="Bold" FontSize="15" Foreground="{StaticResource TextPrimary}"/>
+                                                <TextBlock Text="{Binding Tipo, StringFormat='Formato: {0}'}" FontSize="12" Foreground="{StaticResource AccentBlue}" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding DataCriacao, StringFormat='Data: {0:dd/MM/yyyy HH:mm}'}" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                            </StackPanel>
+
+                                            <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
+                                                    Command="{Binding DataContext.ExcluirTorneioCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}">
+                                                <TextBlock Text="🗑️ Excluir" Foreground="#EF4444"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <TextBlock Grid.Row="2" Text="Todos os torneios ficam salvos no arquivo padel.db na pasta do aplicativo." FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,10,0,0"/>
+                </Grid>
+            </Border>
+        </Border>
+
+    </Grid>
+</Window>
