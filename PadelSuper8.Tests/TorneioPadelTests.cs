@@ -1,3 +1,4 @@
+using System.IO;
 using PadelSuper8.Models;
 using PadelSuper8.Services;
 using Xunit;
@@ -101,5 +102,24 @@ public class TorneioPadelTests
         Assert.Equal(0, j3.Pontos);
         Assert.Equal(1, j3.Derrotas);
         Assert.Equal(-4, j3.SaldoGames);
+    }
+
+    [Fact]
+    public void LogService_DeveCriarArquivoERegistrarMensagensComTimestamp()
+    {
+        // Act
+        LogService.RegistrarInicializacao();
+        LogService.Info("Teste de mensagem informativa para auditoria", "TesteUnitario");
+        LogService.Warn("Teste de aviso para auditoria", null, "TesteUnitario");
+        LogService.Error("Teste de erro registrado para auditoria", new InvalidOperationException("Falha simulada"), "TesteUnitario");
+
+        // Assert
+        Assert.True(File.Exists(LogService.CaminhoArquivoLogAtual), "O arquivo de log diário deve existir.");
+        var conteudo = File.ReadAllText(LogService.CaminhoArquivoLogAtual);
+        Assert.Contains("=== INICIALIZANDO PADEL SUPER 8 PRO", conteudo);
+        Assert.Contains("[INFO ] [TesteUnitario] Teste de mensagem informativa", conteudo);
+        Assert.Contains("[WARN ] [TesteUnitario] Teste de aviso", conteudo);
+        Assert.Contains("[ERROR] [TesteUnitario] Teste de erro registrado", conteudo);
+        Assert.Contains("Falha simulada", conteudo);
     }
 }
