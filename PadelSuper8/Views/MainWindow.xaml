@@ -100,6 +100,16 @@
                         </StackPanel>
                     </Button>
 
+                    <!-- Botão Logs e Auditoria -->
+                    <Button Style="{StaticResource SecondaryButton}" 
+                            Command="{Binding AbrirLogsCommand}"
+                            Margin="0,0,8,0" ToolTip="Abrir pasta de logs e auditoria do sistema">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📋" Margin="0,0,5,0"/>
+                            <TextBlock Text="Logs"/>
+                        </StackPanel>
+                    </Button>
+
                     <!-- Botão Novo Torneio -->
                     <Button Style="{StaticResource SecondaryButton}" 
                             Command="{Binding VoltarCadastroCommand}"

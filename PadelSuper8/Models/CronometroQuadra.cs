@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Threading;
+using PadelSuper8.Services;
 
 namespace PadelSuper8.Models;
 
@@ -48,6 +49,7 @@ public class CronometroQuadra : INotifyPropertyChanged
         {
             _timer.Stop();
             IsRodando = false;
+            LogService.Info($"Cronômetro da Quadra {_quadraNumero} pausado em {TempoFormatado}.", "Cronômetro");
         }
         else
         {
@@ -58,6 +60,7 @@ public class CronometroQuadra : INotifyPropertyChanged
             }
             _timer.Start();
             IsRodando = true;
+            LogService.Info($"Cronômetro da Quadra {_quadraNumero} iniciado/retomado. Tempo atual: {TempoFormatado}.", "Cronômetro");
         }
     }
 
@@ -68,6 +71,7 @@ public class CronometroQuadra : INotifyPropertyChanged
         _tempoAtual = TimeSpan.FromMinutes(minutos);
         TempoEsgotado = false;
         OnPropertyChanged(nameof(TempoFormatado));
+        LogService.Info($"Cronômetro da Quadra {_quadraNumero} resetado para {minutos} minutos ({TempoFormatado}).", "Cronômetro");
     }
 
     private void Timer_Tick(object? sender, EventArgs e)
@@ -82,6 +86,7 @@ public class CronometroQuadra : INotifyPropertyChanged
                 _timer.Stop();
                 IsRodando = false;
                 TempoEsgotado = true;
+                LogService.Warn($"TEMPO ESGOTADO! O cronômetro da Quadra {_quadraNumero} chegou a 00:00.", null, "Cronômetro");
             }
         }
     }

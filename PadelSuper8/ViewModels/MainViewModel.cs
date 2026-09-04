@@ -35,6 +35,8 @@ public class MainViewModel : INotifyPropertyChanged
 
     public MainViewModel()
     {
+        LogService.Info("Inicializando MainViewModel e configurando comandos...", "ViewModel");
+
         // 8 slots iniciais de nomes para o cadastro
         for (int i = 1; i <= 8; i++)
         {
@@ -47,10 +49,18 @@ public class MainViewModel : INotifyPropertyChanged
         // Comandos
         PreencherExemploCommand = new RelayCommand(CarregarExemploPadrao);
         IniciarTorneioCommand = new RelayCommand(IniciarTorneio);
-        VoltarCadastroCommand = new RelayCommand(() => TelaAtual = 0);
+        VoltarCadastroCommand = new RelayCommand(() =>
+        {
+            LogService.Info("Usuário retornou para a tela de cadastro e novo torneio.", "Navegação");
+            TelaAtual = 0;
+        });
         SelecionarRodadaCommand = new RelayCommand(param =>
         {
-            if (param is Rodada r) RodadaSelecionada = r;
+            if (param is Rodada r)
+            {
+                RodadaSelecionada = r;
+                LogService.Info($"Navegou para a rodada: {r.Titulo}", "Navegação");
+            }
         });
 
         IncrementarP1Command = new RelayCommand(param => ModificarPlacar(param, 1, 1));
@@ -64,14 +74,29 @@ public class MainViewModel : INotifyPropertyChanged
         CopiarWhatsAppCommand = new RelayCommand(CopiarParaWhatsApp);
         SalvarBancoCommand = new RelayCommand(SalvarNoBanco);
 
-        AbrirPodioCommand = new RelayCommand(() => ModoPodio = true);
-        FecharPodioCommand = new RelayCommand(() => ModoPodio = false);
+        AbrirPodioCommand = new RelayCommand(() =>
+        {
+            LogService.Info("Modo Telão / Pódio de Premiação aberto.", "Interface");
+            ModoPodio = true;
+        });
+        FecharPodioCommand = new RelayCommand(() =>
+        {
+            LogService.Info("Modo Telão / Pódio de Premiação fechado.", "Interface");
+            ModoPodio = false;
+        });
 
         AbrirHistoricoCommand = new RelayCommand(CarregarHistoricoTorneios);
-        FecharHistoricoCommand = new RelayCommand(() => ModoHistorico = false);
+        FecharHistoricoCommand = new RelayCommand(() =>
+        {
+            LogService.Info("Modal de histórico de torneios fechado.", "Interface");
+            ModoHistorico = false;
+        });
         ExcluirTorneioCommand = new RelayCommand(ExcluirTorneio);
 
         GerarSumulaCommand = new RelayCommand(GerarSumulaImpressao);
+        AbrirLogsCommand = new RelayCommand(AbrirPastaLogs);
+
+        LogService.Info("MainViewModel pronto para uso.", "ViewModel");
     }
 
     public string NomeTorneio
@@ -87,6 +112,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             if (SetField(ref _tipoSelecionado, value))
             {
+                LogService.Info($"Tipo de torneio alterado para: {value}", "Configuração");
                 OnPropertyChanged(nameof(IsRotativo));
                 OnPropertyChanged(nameof(IsDuplasFixas));
                 OnPropertyChanged(nameof(DescricaoModo));
@@ -196,9 +222,11 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand FecharHistoricoCommand { get; }
     public ICommand ExcluirTorneioCommand { get; }
     public ICommand GerarSumulaCommand { get; }
+    public ICommand AbrirLogsCommand { get; }
 
     public void CarregarExemploPadrao()
     {
+        LogService.Info($"Carregando nomes de exemplo padrão para o modo {TipoSelecionado}...", "Cadastro");
         if (IsRotativo)
         {
             string[] atletas = {
@@ -227,12 +255,16 @@ public class MainViewModel : INotifyPropertyChanged
     {
         try
         {
+            LogService.Info($"Tentativa de iniciar torneio '{NomeTorneio}' (Modo: {TipoSelecionado})...", "Torneio");
+
             // Valida se os 8 nomes foram preenchidos
             for (int i = 0; i < 8; i++)
             {
                 if (string.IsNullOrWhiteSpace(SlotsCadastro[i].Nome))
                 {
-                    MostrarAlerta($"Por favor, preencha o nome do participante #{i + 1}.");
+                    var aviso = $"Por favor, preencha o nome do participante #{i + 1}.";
+                    LogService.Warn(aviso, null, "Cadastro");
+                    MostrarAlerta(aviso);
                     return;
                 }
             }
@@ -246,6 +278,8 @@ public class MainViewModel : INotifyPropertyChanged
                     Nome = SlotsCadastro[i].Nome.Trim()
                 });
             }
+
+            LogService.Info($"8 Participantes cadastrados: {string.Join(", ", Participantes.Select(p => p.Nome))}", "Cadastro");
 
             Rodadas.Clear();
             if (IsRotativo)
@@ -262,21 +296,16 @@ public class MainViewModel : INotifyPropertyChanged
             RodadaSelecionada = Rodadas.FirstOrDefault();
             AtualizarClassificacao();
 
-            // Salva estado inicial no SQLite de forma protegida
-            try
-            {
-                _torneioIdAtual = _repositorio.SalvarTorneio(0, NomeTorneio, TipoSelecionado, Participantes, Rodadas);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Erro ao gravar no SQLite: {ex.Message}");
-            }
+            // Salva estado inicial no SQLite
+            SalvarNoBanco();
 
             TelaAtual = 1; // Vai para tela de jogos
+            LogService.Info($"Torneio '{NomeTorneio}' iniciado com sucesso! Total de rodadas iniciais: {Rodadas.Count}.", "Torneio");
             MostrarAlerta("Torneio iniciado! Lance os placares e clique em 'Lançar Resultado'.");
         }
         catch (Exception ex)
         {
+            LogService.Error($"Não foi possível iniciar o torneio: {ex.Message}", ex, "Torneio");
             MessageBox.Show($"Não foi possível iniciar o torneio:\n\n{ex.Message}", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -285,6 +314,9 @@ public class MainViewModel : INotifyPropertyChanged
     {
         if (param is Partida partida)
         {
+            int anteriorP1 = partida.Placar1;
+            int anteriorP2 = partida.Placar2;
+
             if (time == 1)
             {
                 if (delta > 0) partida.IncrementarPlacar1();
@@ -295,6 +327,8 @@ public class MainViewModel : INotifyPropertyChanged
                 if (delta > 0) partida.IncrementarPlacar2();
                 else partida.DecrementarPlacar2();
             }
+
+            LogService.Info($"[Placar Modificado] Partida #{partida.Id} [{partida.NomeQuadra} - {partida.TituloFase}]: {partida.NomeDupla1} vs {partida.NomeDupla2} alterado de ({anteriorP1}x{anteriorP2}) para ({partida.Placar1}x{partida.Placar2}).", "Partida");
 
             AtualizarClassificacao();
         }
@@ -312,11 +346,15 @@ public class MainViewModel : INotifyPropertyChanged
 
             if (partida.EstaFinalizada)
             {
-                MostrarAlerta($"✅ Resultado Lançado! [{partida.NomeQuadra}] {partida.NomeDupla1} {partida.Placar1} x {partida.Placar2} {partida.NomeDupla2}. Pontos somados na classificação e gravados no SQLite!");
+                var msg = $"✅ Resultado Lançado! [{partida.NomeQuadra}] {partida.NomeDupla1} {partida.Placar1} x {partida.Placar2} {partida.NomeDupla2}. Pontos somados na classificação e gravados no SQLite!";
+                LogService.Info($"Partida #{partida.Id} marcara como FINALIZADA: {partida.NomeDupla1} {partida.Placar1} x {partida.Placar2} {partida.NomeDupla2}.", "Partida");
+                MostrarAlerta(msg);
             }
             else
             {
-                MostrarAlerta($"Partida da [{partida.NomeQuadra}] reaberta para edição. Os pontos foram recalculados temporariamente.");
+                var msg = $"Partida da [{partida.NomeQuadra}] reaberta para edição. Os pontos foram recalculados temporariamente.";
+                LogService.Info($"Partida #{partida.Id} REABERTA para edição.", "Partida");
+                MostrarAlerta(msg);
             }
 
             VerificarFasesMataMata();
@@ -331,6 +369,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
+            LogService.Error($"Erro ao gravar no banco SQLite: {ex.Message}", ex, "BancoDados");
             MostrarAlerta($"Erro ao gravar no banco SQLite: {ex.Message}");
         }
     }
@@ -379,129 +418,168 @@ public class MainViewModel : INotifyPropertyChanged
     {
         if (PodeGerarSemifinais)
         {
-            MostrarAlerta("Fase de grupos concluída! Clique no botão 'Gerar Semifinais' para continuar.");
+            var msg = "Fase de grupos concluída! Clique no botão 'Gerar Semifinais' para continuar.";
+            LogService.Info(msg, "FaseEliminatoria");
+            MostrarAlerta(msg);
         }
         else if (PodeGerarFinais)
         {
-            MostrarAlerta("Semifinais concluídas! Clique no botão 'Gerar Grande Final'!");
+            var msg = "Semifinais concluídas! Clique no botão 'Gerar Grande Final'!";
+            LogService.Info(msg, "FaseEliminatoria");
+            MostrarAlerta(msg);
         }
         else if (PodeGerarFinalRotativo)
         {
-            MostrarAlerta("Todas as 7 rodadas concluídas! Você pode gerar a Grande Final com o Top 4.");
+            var msg = "Todas as 7 rodadas concluídas! Você pode gerar a Grande Final com o Top 4.";
+            LogService.Info(msg, "FaseEliminatoria");
+            MostrarAlerta(msg);
         }
     }
 
     private void GerarProximaFaseMataMata()
     {
-        if (PodeGerarSemifinais)
+        try
         {
-            var p1A = ClassificacaoGrupoA[0];
-            var p2A = ClassificacaoGrupoA[1];
-            var p1B = ClassificacaoGrupoB[0];
-            var p2B = ClassificacaoGrupoB[1];
-
-            int proximoId = Rodadas.SelectMany(r => r.Partidas).Max(p => p.Id) + 1;
-            var semi = _geradorService.GerarSemifinais(p1A, p2A, p1B, p2B, proximoId);
-            Rodadas.Add(semi);
-            RodadaSelecionada = semi;
-            MostrarAlerta("Semifinais geradas com sucesso!");
-        }
-        else if (PodeGerarFinais)
-        {
-            var semiRodada = Rodadas[3];
-            var jogo1 = semiRodada.Partidas[0];
-            var jogo2 = semiRodada.Partidas[1];
-
-            var vencedor1 = jogo1.Placar1 > jogo1.Placar2 ? jogo1.Dupla1 : jogo1.Dupla2;
-            var perdedor1 = jogo1.Placar1 > jogo1.Placar2 ? jogo1.Dupla2 : jogo1.Dupla1;
-
-            var vencedor2 = jogo2.Placar1 > jogo2.Placar2 ? jogo2.Dupla1 : jogo2.Dupla2;
-            var perdedor2 = jogo2.Placar1 > jogo2.Placar2 ? jogo2.Dupla2 : jogo2.Dupla1;
-
-            if (vencedor1 != null && vencedor2 != null && perdedor1 != null && perdedor2 != null)
+            if (PodeGerarSemifinais)
             {
+                var p1A = ClassificacaoGrupoA[0];
+                var p2A = ClassificacaoGrupoA[1];
+                var p1B = ClassificacaoGrupoB[0];
+                var p2B = ClassificacaoGrupoB[1];
+
                 int proximoId = Rodadas.SelectMany(r => r.Partidas).Max(p => p.Id) + 1;
-                var finais = _geradorService.GerarFinais(vencedor1, vencedor2, perdedor1, perdedor2, proximoId);
-                Rodadas.Add(finais);
-                RodadaSelecionada = finais;
-                MostrarAlerta("Grande Final e Disputa de 3º Lugar geradas com sucesso!");
+                var semi = _geradorService.GerarSemifinais(p1A, p2A, p1B, p2B, proximoId);
+                Rodadas.Add(semi);
+                RodadaSelecionada = semi;
+                LogService.Info("Semifinais geradas e adicionadas à lista de rodadas.", "FaseEliminatoria");
+                MostrarAlerta("Semifinais geradas com sucesso!");
+                SalvarNoBanco();
             }
+            else if (PodeGerarFinais)
+            {
+                var semiRodada = Rodadas[3];
+                var jogo1 = semiRodada.Partidas[0];
+                var jogo2 = semiRodada.Partidas[1];
+
+                var vencedor1 = jogo1.Placar1 > jogo1.Placar2 ? jogo1.Dupla1 : jogo1.Dupla2;
+                var perdedor1 = jogo1.Placar1 > jogo1.Placar2 ? jogo1.Dupla2 : jogo1.Dupla1;
+
+                var vencedor2 = jogo2.Placar1 > jogo2.Placar2 ? jogo2.Dupla1 : jogo2.Dupla2;
+                var perdedor2 = jogo2.Placar1 > jogo2.Placar2 ? jogo2.Dupla2 : jogo2.Dupla1;
+
+                if (vencedor1 != null && vencedor2 != null && perdedor1 != null && perdedor2 != null)
+                {
+                    int proximoId = Rodadas.SelectMany(r => r.Partidas).Max(p => p.Id) + 1;
+                    var finais = _geradorService.GerarFinais(vencedor1, vencedor2, perdedor1, perdedor2, proximoId);
+                    Rodadas.Add(finais);
+                    RodadaSelecionada = finais;
+                    LogService.Info("Finais geradas (Grande Final + 3º Lugar) e adicionadas às rodadas.", "FaseEliminatoria");
+                    MostrarAlerta("Grande Final e Disputa de 3º Lugar geradas com sucesso!");
+                    SalvarNoBanco();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Erro ao gerar fase eliminatória: {ex.Message}", ex, "FaseEliminatoria");
+            MostrarAlerta($"Erro ao gerar próxima fase: {ex.Message}");
         }
     }
 
     private void GerarFinalRotativo()
     {
-        if (ClassificacaoGeral.Count >= 4)
+        try
         {
-            var top4 = ClassificacaoGeral.Take(4).ToList();
-            int proximoId = Rodadas.SelectMany(r => r.Partidas).Max(p => p.Id) + 1;
-            var finalRot = _geradorService.GerarFinalRotativo(top4[0], top4[1], top4[2], top4[3], proximoId);
-            Rodadas.Add(finalRot);
-            RodadaSelecionada = finalRot;
-            MostrarAlerta("Grande Final dos Top 4 gerada!");
+            if (ClassificacaoGeral.Count >= 4)
+            {
+                var top4 = ClassificacaoGeral.Take(4).ToList();
+                int proximoId = Rodadas.SelectMany(r => r.Partidas).Max(p => p.Id) + 1;
+                var finalRot = _geradorService.GerarFinalRotativo(top4[0], top4[1], top4[2], top4[3], proximoId);
+                Rodadas.Add(finalRot);
+                RodadaSelecionada = finalRot;
+                LogService.Info($"Grande Final dos Top 4 gerada com: 1º({top4[0].Nome}) & 4º({top4[3].Nome}) vs 2º({top4[1].Nome}) & 3º({top4[2].Nome})", "FaseEliminatoria");
+                MostrarAlerta("Grande Final dos Top 4 gerada!");
+                SalvarNoBanco();
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Erro ao gerar final dos Top 4: {ex.Message}", ex, "FaseEliminatoria");
+            MostrarAlerta($"Erro ao gerar final dos Top 4: {ex.Message}");
         }
     }
 
     private void CopiarParaWhatsApp()
     {
-        var sb = new StringBuilder();
-        sb.AppendLine($"🎾 *{NomeTorneio.ToUpper()}*");
-        sb.AppendLine($"📌 *Formato:* {(IsRotativo ? "Super 8 Rotativo (Americano)" : "Super 8 Duplas Fixas")}");
-        sb.AppendLine();
-        sb.AppendLine("📊 *CLASSIFICAÇÃO ATUAL:*");
-
-        IEnumerable<Jogador> lista = IsRotativo 
-            ? ClassificacaoGeral 
-            : Participantes.OrderByDescending(p => p.Pontos);
-        foreach (var p in lista)
-        {
-            string medalha = p.Posicao switch
-            {
-                1 => "🥇",
-                2 => "🥈",
-                3 => "🥉",
-                _ => $"{p.Posicao}º"
-            };
-            sb.AppendLine($"{medalha} {p.Nome} - {p.Pontos} pts | {p.Vitorias}V-{p.Derrotas}D | Sets: {p.SetsVencidos}V-{p.SetsPerdidos}D | Games: {p.GamesPro}GP-{p.GamesContra}GC (SG: {(p.SaldoGames > 0 ? "+" : "")}{p.SaldoGames})");
-        }
-
-        if (RodadaSelecionada != null)
-        {
-            sb.AppendLine();
-            sb.AppendLine($"📍 *{RodadaSelecionada.Titulo}:*");
-            foreach (var part in RodadaSelecionada.Partidas)
-            {
-                string status = part.EstaFinalizada ? "✅ Finalizado" : (part.Status == StatusPartida.EmAndamento ? "⏳ Em jogo" : "🕒 A iniciar");
-                sb.AppendLine($"• [{part.NomeQuadra}] {part.NomeDupla1} {part.Placar1} x {part.Placar2} {part.NomeDupla2} ({status})");
-            }
-        }
-
-        sb.AppendLine();
-        sb.AppendLine("⚡ _Gerado pelo Padel Super 8 Manager_");
-
         try
         {
+            var sb = new StringBuilder();
+            sb.AppendLine($"🎾 *{NomeTorneio.ToUpper()}*");
+            sb.AppendLine($"📌 *Formato:* {(IsRotativo ? "Super 8 Rotativo (Americano)" : "Super 8 Duplas Fixas")}");
+            sb.AppendLine();
+            sb.AppendLine("📊 *CLASSIFICAÇÃO ATUAL:*");
+
+            IEnumerable<Jogador> lista = IsRotativo 
+                ? ClassificacaoGeral 
+                : Participantes.OrderByDescending(p => p.Pontos);
+            foreach (var p in lista)
+            {
+                string medalha = p.Posicao switch
+                {
+                    1 => "🥇",
+                    2 => "🥈",
+                    3 => "🥉",
+                    _ => $"{p.Posicao}º"
+                };
+                sb.AppendLine($"{medalha} {p.Nome} - {p.Pontos} pts | {p.Vitorias}V-{p.Derrotas}D | Sets: {p.SetsVencidos}V-{p.SetsPerdidos}D | Games: {p.GamesPro}GP-{p.GamesContra}GC (SG: {(p.SaldoGames > 0 ? "+" : "")}{p.SaldoGames})");
+            }
+
+            if (RodadaSelecionada != null)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"📍 *{RodadaSelecionada.Titulo}:*");
+                foreach (var part in RodadaSelecionada.Partidas)
+                {
+                    string status = part.EstaFinalizada ? "✅ Finalizado" : (part.Status == StatusPartida.EmAndamento ? "⏳ Em jogo" : "🕒 A iniciar");
+                    sb.AppendLine($"• [{part.NomeQuadra}] {part.NomeDupla1} {part.Placar1} x {part.Placar2} {part.NomeDupla2} ({status})");
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("⚡ _Gerado pelo Padel Super 8 Manager_");
+
             Clipboard.SetText(sb.ToString());
+            LogService.Info("Resumo do torneio gerado e copiado para a Área de Transferência (WhatsApp).", "WhatsApp");
             MostrarAlerta("📋 Resumo copiado para a Área de Transferência! Pronto para colar no WhatsApp.");
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.Error($"Erro ao copiar dados para a Área de Transferência: {ex.Message}", ex, "WhatsApp");
             MostrarAlerta("Não foi possível acessar a área de transferência diretamente.");
         }
     }
 
     private void CarregarHistoricoTorneios()
     {
-        ListaTorneiosSalvos.Clear();
-        var lista = _repositorio.ObterTorneiosSalvos();
-        foreach (var t in lista) ListaTorneiosSalvos.Add(t);
-        ModoHistorico = true;
+        try
+        {
+            LogService.Info("Abrindo modal de histórico de torneios...", "Historico");
+            ListaTorneiosSalvos.Clear();
+            var lista = _repositorio.ObterTorneiosSalvos();
+            foreach (var t in lista) ListaTorneiosSalvos.Add(t);
+            ModoHistorico = true;
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Erro ao abrir histórico: {ex.Message}", ex, "Historico");
+        }
     }
 
     private void ExcluirTorneio(object? param)
     {
         if (param is TorneioDb t)
         {
+            LogService.Info($"Solicitada exclusão do torneio Id #{t.Id} ('{t.Nome}').", "Historico");
             _repositorio.ExcluirTorneio(t.Id);
             ListaTorneiosSalvos.Remove(t);
             MostrarAlerta($"Torneio '{t.Nome}' removido do banco.");
@@ -512,6 +590,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         try
         {
+            LogService.Info("Iniciando geração de súmula oficial em HTML...", "Sumula");
             var html = new StringBuilder();
             html.AppendLine("<!DOCTYPE html><html><head><meta charset='utf-8'>");
             html.AppendLine("<title>Súmula Oficial - " + NomeTorneio + "</title>");
@@ -565,16 +644,41 @@ public class MainViewModel : INotifyPropertyChanged
             File.WriteAllText(tempFile, html.ToString(), Encoding.UTF8);
 
             Process.Start(new ProcessStartInfo(tempFile) { UseShellExecute = true });
+            LogService.Info($"Súmula oficial gerada com sucesso no arquivo: '{tempFile}' e aberta no navegador padrão.", "Sumula");
             MostrarAlerta("📄 Súmula gerada com sucesso e aberta no navegador!");
         }
         catch (Exception ex)
         {
+            LogService.Error($"Erro ao gerar súmula de impressão: {ex.Message}", ex, "Sumula");
             MostrarAlerta($"Erro ao gerar súmula: {ex.Message}");
+        }
+    }
+
+    private void AbrirPastaLogs()
+    {
+        try
+        {
+            if (!Directory.Exists(LogService.PastaLogs))
+            {
+                Directory.CreateDirectory(LogService.PastaLogs);
+            }
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = LogService.PastaLogs,
+                UseShellExecute = true
+            });
+            LogService.Info("Pasta de logs aberta através do comando de interface.", "Interface");
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Falha ao abrir pasta de logs: {ex.Message}", ex, "Interface");
+            MostrarAlerta($"Não foi possível abrir a pasta de logs: {ex.Message}");
         }
     }
 
     private void MostrarAlerta(string mensagem)
     {
+        LogService.Info($"[Alerta UI] {mensagem}", "Interface");
         MensagemAlerta = mensagem;
         TemAlerta = true;
     }

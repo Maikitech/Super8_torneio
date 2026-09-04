@@ -12,7 +12,13 @@ public class GeradorTorneioService
     public ObservableCollection<Rodada> GerarSuper8Rotativo(List<Jogador> jogadores)
     {
         if (jogadores.Count != 8)
-            throw new ArgumentException("O Super 8 Rotativo requer exatamente 8 jogadores.");
+        {
+            var erro = "O Super 8 Rotativo requer exatamente 8 jogadores cadastrados.";
+            LogService.Error(erro, null, "GeradorTorneio");
+            throw new ArgumentException(erro);
+        }
+
+        LogService.Info($"Iniciando geração do Super 8 Rotativo com os jogadores: {string.Join(", ", jogadores.Select(j => j.Nome))}", "GeradorTorneio");
 
         var rodadas = new ObservableCollection<Rodada>();
         int partidaId = 1;
@@ -69,6 +75,7 @@ public class GeradorTorneioService
             rodadas.Add(rodada);
         }
 
+        LogService.Info("Super 8 Rotativo gerado com sucesso: 7 rodadas e 14 partidas criadas.", "GeradorTorneio");
         return rodadas;
     }
 
@@ -78,7 +85,13 @@ public class GeradorTorneioService
     public ObservableCollection<Rodada> GerarSuper8DuplasFixas(List<Jogador> duplas)
     {
         if (duplas.Count != 8)
-            throw new ArgumentException("O Super 8 de Duplas Fixas requer exatamente 8 duplas.");
+        {
+            var erro = "O Super 8 de Duplas Fixas requer exatamente 8 duplas cadastradas.";
+            LogService.Error(erro, null, "GeradorTorneio");
+            throw new ArgumentException(erro);
+        }
+
+        LogService.Info($"Iniciando geração do Super 8 Duplas Fixas. Grupo A: {string.Join(", ", duplas.Take(4).Select(d => d.Nome))} | Grupo B: {string.Join(", ", duplas.Skip(4).Take(4).Select(d => d.Nome))}", "GeradorTorneio");
 
         // Atribui grupos
         for (int i = 0; i < 4; i++) duplas[i].Grupo = "A";
@@ -114,6 +127,7 @@ public class GeradorTorneioService
         r3.Partidas.Add(CriarPartidaDuplas(partidaId++, 3, 2, FasePartida.GrupoB, "Grupo B", gB[1], gB[2]));
         rodadas.Add(r3);
 
+        LogService.Info("Super 8 Duplas Fixas gerado: 3 rodadas de grupos e 12 partidas.", "GeradorTorneio");
         return rodadas;
     }
 
@@ -136,6 +150,8 @@ public class GeradorTorneioService
     /// </summary>
     public Rodada GerarSemifinais(Jogador primeiroA, Jogador segundoA, Jogador primeiroB, Jogador segundoB, int proximoId)
     {
+        LogService.Info($"Gerando Semifinais: SF1({primeiroA.Nome} vs {segundoB.Nome}), SF2({primeiroB.Nome} vs {segundoA.Nome})", "GeradorTorneio");
+
         var rodada = new Rodada
         {
             Numero = 4,
@@ -172,6 +188,8 @@ public class GeradorTorneioService
     /// </summary>
     public Rodada GerarFinais(Jogador finalista1, Jogador finalista2, Jogador terceiro1, Jogador terceiro2, int proximoId)
     {
+        LogService.Info($"Gerando Finais: Grande Final ({finalista1.Nome} vs {finalista2.Nome}) e 3º Lugar ({terceiro1.Nome} vs {terceiro2.Nome})", "GeradorTorneio");
+
         var rodada = new Rodada
         {
             Numero = 5,
@@ -208,6 +226,8 @@ public class GeradorTorneioService
     /// </summary>
     public Rodada GerarFinalRotativo(Jogador p1, Jogador p2, Jogador p3, Jogador p4, int proximoId)
     {
+        LogService.Info($"Gerando Grande Final dos Top 4 do Rotativo: ({p1.Nome} + {p4.Nome}) vs ({p2.Nome} + {p3.Nome})", "GeradorTorneio");
+
         var rodada = new Rodada
         {
             Numero = 8,

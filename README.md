@@ -9,12 +9,16 @@
 
 Um aplicativo desktop moderno, intuitivo e completo para Windows em **C# e WPF (.NET 8)**, desenvolvido especialmente para organizar, cronometrar e gerenciar torneios de **Padel no formato Super 8** (tanto no modo **Rotativo Individual / Americano** quanto no modo **Duplas Fixas com Grupos e Mata-Mata**).
 
+> 📘 **Procurando o Guia de Operação?** Acesse o [**Manual de Uso Completo (Passo a Passo)**](file:///e:/Meu%20Drive/GITHUB_REPOSITORY/Super8_torneio/MANUAL_DE_USO.md) com orientações práticas para qualquer pessoa operar o torneio sem complicações.
+
 ---
 
 ## 📌 Sumário
+- [Manual de Uso do Sistema](MANUAL_DE_USO.md)
 - [Visão Geral](#-visão-geral)
 - [Modos de Disputa Oficiais](#-modos-de-disputa-oficiais)
 - [Principais Recursos](#-principais-recursos)
+- [Auditoria e Logs de Atividades](#-auditoria-e-logs-de-atividades)
 - [Arquitetura e Tecnologias](#-arquitetura-e-tecnologias)
 - [Estrutura do Repositório](#-estrutura-do-repositório)
 - [Pré-requisitos e Como Executar](#-pré-requisitos-e-como-executar)
@@ -93,6 +97,22 @@ Projetado para **8 duplas inscritas**:
 - Botão dedicado que formata toda a classificação e os jogos da rodada em texto legível com emojis.
 - Copia diretamente para a **Área de Transferência do Windows**, permitindo colar e enviar no grupo dos jogadores em segundos.
 
+### 📋 Auditoria e Logs de Atividades
+- Registro cronológico e detalhado de todas as operações em arquivos diários dentro da pasta:
+  ```text
+  logs/padel_super8_AAAA-MM-DD.log
+  ```
+- **Rastreamento com data, hora e milissegundos**:
+  - Inicialização, versão do SO, .NET Runtime e caminhos de execução.
+  - Cadastro de atletas e seleção de modo (Rotativo vs Duplas Fixas).
+  - Cada ponto/game alterado nas quadras (`+` e `-`), indicando quadra e partida.
+  - Finalizações e reaberturas de partidas com recálculo da tabela.
+  - Início, pausa, reinício e avisos de tempo esgotado dos cronômetros.
+  - Operações com banco de dados SQLite (`padel.db`).
+  - Geração de súmula oficial e exportação para WhatsApp.
+  - Captura global e blindagem de erros não tratados com *StackTrace* completo.
+- **Botão "📋 Logs" integrado na interface**: abre diretamente a pasta de logs no Windows Explorer com 1 clique para diagnósticos e suporte técnico.
+
 ---
 
 ## 🛠️ Arquitetura e Tecnologias
@@ -109,34 +129,36 @@ Projetado para **8 duplas inscritas**:
 
 ```text
 Super8_torneio/
+├── MANUAL_DE_USO.md                     # Manual oficial passo a passo para o usuário
 ├── PadelSuper8.slnx                     # Arquivo de Solução do Visual Studio / .NET
 ├── Publicar_Versao_Portatil.bat         # Script para gerar o executável autônomo (.exe)
 │
 ├── PadelSuper8/                         # Projeto Desktop Principal (WPF)
 │   ├── PadelSuper8.csproj               # Configurações do projeto e publicação Single-File
-│   ├── App.xaml / App.xaml.cs           # Entrada do aplicativo WPF e recursos visuais
+│   ├── App.xaml / App.xaml.cs           # Entrada do aplicativo WPF, logs e tratamento global de erros
 │   │
 │   ├── Models/                          # Entidades de Domínio
 │   │   ├── Jogador.cs                   # Modelo de participante, métricas e estatísticas
 │   │   ├── Partida.cs                   # Modelo de confronto, duplas, placar e status
 │   │   ├── Rodada.cs                    # Coleção de partidas por etapa
-│   │   ├── CronometroQuadra.cs          # Temporizador regressivo DispatcherTimer por quadra
+│   │   ├── CronometroQuadra.cs          # Temporizador regressivo DispatcherTimer por quadra com logs
 │   │   └── TipoTorneio.cs               # Enum com os modos (Rotativo vs Duplas Fixas)
 │   │
 │   ├── ViewModels/                      # Lógica de Apresentação (MVVM)
-│   │   ├── MainViewModel.cs             # Estado do torneio, comandos, rankings e persistência
+│   │   ├── MainViewModel.cs             # Estado do torneio, comandos, rankings, logs e persistência
 │   │   └── RelayCommand.cs              # Implementação de ICommand para UI bindings
 │   │
-│   ├── Services/                        # Serviços de Negócio
+│   ├── Services/                        # Serviços de Negócio e Infraestrutura
+│   │   ├── LogService.cs                # Motor de logging e auditoria contínua em logs/
 │   │   ├── GeradorTorneioService.cs     # Algoritmo matemático de rodadas e combinações únicas
 │   │   ├── CalculadoraClassificacao.cs  # Motor de desempate e estatísticas
-│   │   └── TorneioRepository.cs         # Camada de repositório para operações com EF Core
+│   │   └── TorneioRepository.cs         # Camada de repositório para operações com EF Core (SQLite)
 │   │
 │   ├── Data/                            # Banco de Dados
 │   │   └── PadelDbContext.cs            # Contexto do EF Core e mapeamento SQLite (padel.db)
 │   │
 │   ├── Views/                           # Telas e Componentes Gráficos
-│   │   └── MainWindow.xaml              # Janela principal com Match Center, Cronômetro e Ranking
+│   │   └── MainWindow.xaml              # Janela principal com Match Center, Cronômetro, Ranking e Logs
 │   │
 │   └── Converters/                      # Conversores de dados XAML (visibilidade, cores, etc.)
 │

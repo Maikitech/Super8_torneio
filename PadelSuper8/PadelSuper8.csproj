@@ -8,8 +8,15 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>PadelSuper8</RootNamespace>
     <AssemblyName>PadelSuper8</AssemblyName>
-    
-    <!-- Configurações para Executável Portátil Independente (Zero Instalações) -->
+  </PropertyGroup>
+
+  <!-- Em Debug no Google Drive, desabilita geração do apphost intermediário para evitar file locks -->
+  <PropertyGroup Condition="'$(Configuration)' != 'Release'">
+    <UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+
+  <!-- Configurações para Executável Portátil Independente (Release / Publish) -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
